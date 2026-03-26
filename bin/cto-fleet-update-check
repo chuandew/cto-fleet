@@ -14,6 +14,10 @@ set -euo pipefail
 
 CTO_FLEET_DIR="${CTO_FLEET_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 STATE_DIR="${CTO_FLEET_STATE_DIR:-$HOME/.cto-fleet}"
+
+# Ensure state directory exists with secure permissions
+mkdir -p "$STATE_DIR"
+chmod 700 "$STATE_DIR" 2>/dev/null || true
 CACHE_FILE="$STATE_DIR/last-update-check"
 MARKER_FILE="$STATE_DIR/just-upgraded-from"
 SNOOZE_FILE="$STATE_DIR/update-snoozed"
@@ -93,12 +97,16 @@ fi
 # ─── Step 2: Check "just upgraded" marker ─────────────────────
 if [ -f "$MARKER_FILE" ]; then
   OLD="$(cat "$MARKER_FILE" 2>/dev/null | tr -d '[:space:]')"
-  rm -f "$MARKER_FILE"
-  rm -f "$SNOOZE_FILE"
-  mkdir -p "$STATE_DIR"
-  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE"
-  if [ -n "$OLD" ]; then
-    echo "JUST_UPGRADED $OLD $LOCAL"
+  # Atomic delete — only the process that successfully removes the file proceeds
+  if rm -f "$MARKER_FILE" 2>/dev/null; then
+    rm -f "$SNOOZE_FILE"
+    _tmp="$(mktemp "$CACHE_FILE.XXXXXX" 2>/dev/null)" || _tmp="$CACHE_FILE.$$"
+    echo "UP_TO_DATE $LOCAL" > "$_tmp"
+    mv "$_tmp" "$CACHE_FILE"
+    chmod 600 "$CACHE_FILE" 2>/dev/null || true
+    if [ -n "$OLD" ]; then
+      echo "JUST_UPGRADED $OLD $LOCAL"
+    fi
   fi
   exit 0
 fi
@@ -142,23 +150,34 @@ fi
 mkdir -p "$STATE_DIR"
 
 REMOTE=""
-REMOTE="$(curl -sf --max-time 5 "$REMOTE_URL" 2>/dev/null || true)"
+if ! REMOTE="$(curl -sf --max-time 5 "$REMOTE_URL" 2>/dev/null)"; then
+  # Network error — do NOT cache, let next invocation retry
+  exit 0
+fi
 REMOTE="$(echo "$REMOTE" | tr -d '[:space:]')"
 
-# Validate: must look like a version number (reject HTML error pages)
-if ! echo "$REMOTE" | grep -qE '^[0-9]+\.[0-9.]+$'; then
-  # Invalid or empty response — assume up to date
-  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE"
+# Validate: must be strict SemVer (reject HTML error pages and malformed versions)
+if ! echo "$REMOTE" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  # Invalid or empty response — do not cache
   exit 0
 fi
 
+_atomic_write_cache() {
+  local content="$1"
+  local _tmp
+  _tmp="$(mktemp "$CACHE_FILE.XXXXXX" 2>/dev/null)" || _tmp="$CACHE_FILE.$$"
+  echo "$content" > "$_tmp"
+  mv "$_tmp" "$CACHE_FILE"
+  chmod 600 "$CACHE_FILE" 2>/dev/null || true
+}
+
 if [ "$LOCAL" = "$REMOTE" ]; then
-  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE"
+  _atomic_write_cache "UP_TO_DATE $LOCAL"
   exit 0
 fi
 
 # Versions differ — upgrade available
-echo "UPGRADE_AVAILABLE $LOCAL $REMOTE" > "$CACHE_FILE"
+_atomic_write_cache "UPGRADE_AVAILABLE $LOCAL $REMOTE"
 if check_snooze "$REMOTE"; then
   exit 0  # snoozed — stay quiet
 fi
