@@ -227,6 +227,25 @@ If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-flee
 | "供应商评估 + 架构决策" | `/team-vendor` → `/team-adr` |
 | "团队健康 + Sprint规划" | `/team-capacity` → `/team-sprint` |
 | "技术债务 + 汇报" | `/team-techdebt` → `/team-report` |
+| "威胁建模 + 修复" | `/team-threat-model` → `/team-refactor` |
+| "威胁建模 + 决策记录" | `/team-threat-model` → `/team-adr` |
+| "Agent治理 + 合规" | `/team-governance` → `/team-compliance` |
+| "功能开关 + 发布" | `/team-feature-flag` → `/team-release` |
+| "功能开关 + 可观测性" | `/team-feature-flag` → `/team-observability` |
+| "测试策略 + CI/CD" | `/team-test` → `/team-cicd` |
+| "测试策略 + 重构" | `/team-test` → `/team-refactor` |
+| "无障碍 + 开发修复" | `/team-accessibility` → `/team-dev` |
+| "契约测试 + 迁移" | `/team-contract-test` → `/team-migration` |
+| "契约测试 + API设计" | `/team-contract-test` → `/team-api-design` |
+| "混沌工程 + 运维手册" | `/team-chaos` → `/team-runbook` |
+| "混沌工程 + 可观测性" | `/team-chaos` → `/team-observability` |
+| "DORA指标 + 流水线" | `/team-dora` → `/team-cicd` |
+| "DORA指标 + Sprint规划" | `/team-dora` → `/team-sprint` |
+| "Schema设计 + 迁移" | `/team-schema` → `/team-migration` |
+| "Schema审计 + 性能" | `/team-schema` → `/team-perf` |
+| "国际化 + 测试" | `/team-i18n` → `/team-test` |
+| "国际化 + 发布" | `/team-i18n` → `/team-release` |
+| "CI/CD + 发布" | `/team-cicd` → `/team-release` |
 
 路由只执行第一个 skill。第一个 skill 完成后，其跨团队衔接建议会自然引导到下一个。
 
