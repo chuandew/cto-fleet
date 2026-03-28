@@ -40,6 +40,42 @@ If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-flee
 
 使用 TeamCreate 创建 team（名称格式 `team-security-{YYYYMMDD-HHmmss}`，如 `team-security-20260308-143022`，避免多次调用冲突），你作为 team lead 按以下流程协调。
 
+<!-- HANDOFF_SECTION_START -->
+## 文件交接规范（File-Based Handoff）
+
+所有 agent 间传递详细报告时，必须采用**文件交接模式**（防止上下文溢出触发 20MB 限制）：
+
+1. **写入文件**：将完整报告写入团队工作目录：
+   - 目录路径：`/tmp/{team-name}/`（team lead 在 TeamCreate 后执行 `mkdir -p /tmp/{team-name} && chmod 700 /tmp/{team-name}`）
+   - 单个文件 ≤ 2000 行；超大报告拆分为 summary + details 文件
+2. **发送引用**：通过 SendMessage 仅发送（≤500 字符）：
+   - 文件路径（1 行）
+   - 关键摘要（含核心指标/发现/评分）
+3. **按需读取**：接收方使用 Read 按需读取文件，发送方不内联完整内容
+4. **路径转发**：team lead 转发报告时只转发文件路径 + 摘要，不 Read 后再 SendMessage
+5. **遵从校验**：team lead 收到超 1000 字符且不含 `/tmp/team-` 路径前缀的消息时，要求 agent 以文件交接模式重发
+
+**文件命名规范**：
+
+| 角色输出 | 文件名 |
+|---------|--------|
+| Scanner 报告 | `scanner-report.md` |
+| Reviewer-N 第R轮 | `reviewer-{N}-round-{R}.md` |
+| 合并报告第R轮 | `merged-report-round-{R}.md` |
+| 根因分组 | `root-cause-groups-round-{R}.md` |
+| Fixer 第R轮 | `fixer-round-{R}.md` |
+| Tester 第R轮 | `tester-round-{R}.md` |
+| Architect-N 方案 | `architect-{N}-design.md` |
+| 任务拆解 | `task-breakdown.md` |
+| Coder-N 任务T | `coder-{N}-task-{T}.md` |
+| 审查任务T | `review-task-{T}.md` |
+| 集成测试第R轮 | `integration-test-round-{R}.md` |
+| 最终报告 | `final-report.md` |
+
+> 仅当角色存在于当前 skill 时使用对应命名。未列出的角色用 `{role}-{context}.md` 格式。
+<!-- HANDOFF_SECTION_END -->
+
+
 ## 文件交接规范
 
 本 skill 使用**文件交接模式**管理 agent 间通信，防止上下文溢出。

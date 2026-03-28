@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+# handoff-check — diagnose file-based handoff compliance in a team directory
+#
+# Checks /tmp/team-* directories for:
+#   - File naming compliance (matches known patterns)
+#   - YAML frontmatter presence
+#   - File size distribution
+#   - Overall compliance rate
+#
+# Usage:
+#   bin/handoff-check                          # auto-detect latest /tmp/team-* dir
+#   bin/handoff-check --dir=/tmp/team-review-20260328-100000
+#   bin/handoff-check --all                    # check all /tmp/team-* dirs
+set -euo pipefail
+
+# Known file naming patterns from HANDOFF.md
+KNOWN_PATTERNS=(
+  'scanner-report\.md'
+  'reviewer-[0-9]+-round-[0-9]+\.md'
+  'merged-report-round-[0-9]+\.md'
+  'root-cause-groups-round-[0-9]+\.md'
+  'fixer-round-[0-9]+\.md'
+  'tester-round-[0-9]+\.md'
+  'architect-[0-9]+-design\.md'
+  'task-breakdown\.md'
+  'coder-[0-9]+-task-[0-9]+\.md'
+  'review-task-[0-9]+\.md'
+  'integration-test-round-[0-9]+\.md'
+  'final-report\.md'
+  # Fallback pattern: {role}-{context}.md
+  '[a-z]+-[a-z0-9_-]+\.md'
+)
+
+DIR=""
+ALL=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --dir=*) DIR="${arg#--dir=}" ;;
+    --all)   ALL=1 ;;
+    --help|-h)
+      echo "Usage: bin/handoff-check [--dir=PATH] [--all]"
+      echo ""
+      echo "Options:"
+      echo "  --dir=PATH   Check specific team directory"
+      echo "  --all        Check all /tmp/team-* directories"
+      echo "  (default)    Auto-detect latest /tmp/team-* directory"
+      exit 0
+      ;;
+    *) echo "Unknown option: $arg"; exit 1 ;;
+  esac
+done
+
+check_dir() {
+  local dir="$1"
+  local dir_name
+  dir_name=$(basename "$dir")
+
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Directory: $dir"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  if [ ! -d "$dir" ]; then
+    echo "  ERROR: Directory does not exist"
+    echo ""
+    return 1
+  fi
+
+  local total=0
+  local compliant=0
+  local has_frontmatter=0
+  local size_small=0    # < 1KB
+  local size_medium=0   # 1KB - 50KB
+  local size_large=0    # 50KB - 200KB
+  local size_xlarge=0   # > 200KB
+  local total_bytes=0
+  local noncompliant_files=""
+
+  while IFS= read -r -d '' file; do
+    total=$((total + 1))
+    local fname
+    fname=$(basename "$file")
+    local fsize
+    fsize=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
+    total_bytes=$((total_bytes + fsize))
+
+    # Size buckets
+    if [ "$fsize" -lt 1024 ]; then
+      size_small=$((size_small + 1))
+    elif [ "$fsize" -lt 51200 ]; then
+      size_medium=$((size_medium + 1))
+    elif [ "$fsize" -lt 204800 ]; then
+      size_large=$((size_large + 1))
+    else
+      size_xlarge=$((size_xlarge + 1))
+    fi
+
+    # Naming compliance check
+    local name_ok=0
+    for pattern in "${KNOWN_PATTERNS[@]}"; do
+      if echo "$fname" | grep -qE "^${pattern}$"; then
+        name_ok=1
+        break
+      fi
+    done
+    if [ "$name_ok" -eq 1 ]; then
+      compliant=$((compliant + 1))
+    else
+      noncompliant_files="$noncompliant_files    ✗ $fname (non-standard name)\n"
+    fi
+
+    # YAML frontmatter check
+    if head -1 "$file" 2>/dev/null | grep -q '^---$'; then
+      has_frontmatter=$((has_frontmatter + 1))
+    fi
+  done < <(find "$dir" -maxdepth 1 -name "*.md" -type f -print0 2>/dev/null)
+
+  if [ "$total" -eq 0 ]; then
+    echo "  (empty — no .md files found)"
+    echo ""
+    return 0
+  fi
+
+  # Compliance rate
+  local rate=0
+  if [ "$total" -gt 0 ]; then
+    rate=$((compliant * 100 / total))
+  fi
+
+  # Frontmatter rate
+  local fm_rate=0
+  if [ "$total" -gt 0 ]; then
+    fm_rate=$((has_frontmatter * 100 / total))
+  fi
+
+  # Human-readable total size
+  local size_human
+  if [ "$total_bytes" -gt 1048576 ]; then
+    size_human="$((total_bytes / 1048576)) MB"
+  elif [ "$total_bytes" -gt 1024 ]; then
+    size_human="$((total_bytes / 1024)) KB"
+  else
+    size_human="$total_bytes B"
+  fi
+
+  echo ""
+  echo "  Files:       $total .md files ($size_human total)"
+  echo "  Naming:      $compliant/$total compliant ($rate%)"
+  echo "  Frontmatter: $has_frontmatter/$total have YAML frontmatter ($fm_rate%)"
+  echo ""
+  echo "  Size distribution:"
+  echo "    < 1 KB:     $size_small files"
+  echo "    1-50 KB:    $size_medium files"
+  echo "    50-200 KB:  $size_large files"
+  echo "    > 200 KB:   $size_xlarge files"
+
+  if [ -n "$noncompliant_files" ]; then
+    echo ""
+    echo "  Non-compliant files:"
+    printf "%b" "$noncompliant_files"
+  fi
+
+  echo ""
+
+  # Return compliance rate for summary
+  if [ "$rate" -ge 80 ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# Determine directories to check
+dirs=()
+
+if [ "$ALL" -eq 1 ]; then
+  while IFS= read -r d; do
+    dirs+=("$d")
+  done < <(find /tmp -maxdepth 1 -name "team-*" -type d 2>/dev/null | sort)
+elif [ -n "$DIR" ]; then
+  dirs+=("$DIR")
+else
+  # Auto-detect latest /tmp/team-* directory
+  latest=$(find /tmp -maxdepth 1 -name "team-*" -type d 2>/dev/null | sort | tail -1)
+  if [ -n "$latest" ]; then
+    dirs+=("$latest")
+  fi
+fi
+
+if [ ${#dirs[@]} -eq 0 ]; then
+  echo "No /tmp/team-* directories found."
+  echo "Usage: bin/handoff-check --dir=/tmp/team-xxx or --all"
+  exit 0
+fi
+
+echo "╔══════════════════════════════════════════╗"
+echo "║       Handoff Compliance Check           ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+
+total_dirs=0
+ok_dirs=0
+
+for d in "${dirs[@]}"; do
+  total_dirs=$((total_dirs + 1))
+  if check_dir "$d"; then
+    ok_dirs=$((ok_dirs + 1))
+  fi
+done
+
+if [ "$total_dirs" -gt 1 ]; then
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Summary: $ok_dirs/$total_dirs directories pass (≥80% naming compliance)"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+fi

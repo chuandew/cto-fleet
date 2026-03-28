@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0] - 2026-03-28
+
+### Added
+- `bin/handoff-check` — Handoff compliance diagnostic tool. Checks `/tmp/team-*` directories for file naming compliance, YAML frontmatter, size distribution. Supports `--dir=PATH`, `--all`, auto-detect latest
+
+### Changed
+- **All 42 team skills** — Batch rollout of file-based handoff section via `bin/sync-preamble --fix`. Every SKILL.md with TeamCreate now has the canonical `<!-- HANDOFF_SECTION_START/END -->` handoff specification block
+
 ## [1.6.0] - 2026-03-28
 
 ### Added
