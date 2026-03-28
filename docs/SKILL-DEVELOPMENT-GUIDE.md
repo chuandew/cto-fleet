@@ -8,7 +8,7 @@ How to create, test, and maintain cto-fleet skills.
 2. Fill in the YAML frontmatter (name, description, argument-hint)
 3. Keep the Preamble section unchanged
 4. Define your parameters, roles, and workflow
-5. Run `bin/sync-preamble --check` to verify preamble consistency
+5. Run `bin/sync-protocols --fix` to inject protocol sections
 6. Add your skill to the router (`team/SKILL.md`) decision matrix
 
 ## Directory Structure
@@ -47,7 +47,7 @@ argument-hint: {parameter summary}
 
 ### 2. Preamble
 
-Copy verbatim from the template. Never modify. Use `bin/sync-preamble` to verify.
+Auto-injected by `bin/sync-protocols`. Never modify manually.
 
 ### 3. Parameter Parsing
 
@@ -135,7 +135,7 @@ Certain conditions ALWAYS pause execution regardless of --auto/--once:
 ## Testing Your Skill
 
 1. **Syntax check**: Ensure the markdown renders correctly
-2. **Preamble check**: `bin/sync-preamble --check --skills=team-{name}`
+2. **Protocol check**: `bin/sync-protocols --skills=team-{name}`
 3. **Parameter check**: Verify parameters match `docs/PARAMETER-SPEC.md`
 4. **Router check**: Ensure `team/SKILL.md` has your skill in the decision matrix
 5. **Dry run**: Test with a small, safe task using `--once` mode
@@ -153,7 +153,7 @@ Update `team/SKILL.md` with:
 Before submitting a new skill:
 
 - [ ] Directory matches name in frontmatter
-- [ ] Preamble is identical to template
+- [ ] Protocol sections present (preamble, handoff, etc.)
 - [ ] Standard parameters (--auto/--once/--lang) documented
 - [ ] Mode behavior matrix included
 - [ ] Circuit breaker conditions defined
@@ -161,4 +161,26 @@ Before submitting a new skill:
 - [ ] Consensus/scoring mechanism defined (if multi-analyst)
 - [ ] Error handling table included
 - [ ] Router updated with intent signals
-- [ ] `bin/sync-preamble --check` passes
+- [ ] `bin/sync-protocols` passes (no drift)
+
+## Protocol Management
+
+Protocol sections (preamble, handoff, consensus, error-handling) are managed centrally and injected into skills automatically. Never hand-edit content between `<!-- X_SECTION_START -->` and `<!-- X_SECTION_END -->` markers.
+
+### Source files
+
+- `protocols/preamble.md` — update check + upgrade flow (injected into all skills)
+- `HANDOFF.md` — file-based handoff protocol (TeamCreate skills only)
+- `protocols/consensus.md` — consensus scoring (TeamCreate skills, excludes domain-specific)
+- `protocols/error-handling.md` — standard error table (TeamCreate skills only)
+- `protocols/registry.conf` — controls which protocols go where and in what order
+
+### Common tasks
+
+| Task | Command |
+|------|---------|
+| Check for drift (read-only) | `bin/sync-protocols` |
+| Fix all drift | `bin/sync-protocols --fix` |
+| Inject protocols into a new skill | Create the skill directory, then `bin/sync-protocols --fix` |
+| Modify a protocol | Edit the source file in `protocols/`, then `bin/sync-protocols --fix` |
+| Add a new protocol | Create source file with `<!-- NAME_START -->` / `<!-- NAME_END -->` markers, add a line to `registry.conf`, run `bin/sync-protocols --fix` |
