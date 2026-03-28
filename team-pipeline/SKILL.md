@@ -4,6 +4,7 @@ description: 多 team 接力执行器——自动按序调用多个 team-* skill
 argument-hint: --steps=skill1,skill2,... [--auto] [--once] [--lang=zh|en] 任务描述
 ---
 
+<!-- PREAMBLE_SECTION_START -->
 ## Preamble (run first)
 
 ```bash
@@ -12,8 +13,7 @@ _UPD=$(~/.claude/skills/cto-fleet/bin/cto-fleet-update-check 2>/dev/null || true
 ```
 
 If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-fleet/cto-fleet-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running cto-fleet v{to} (just updated!)" and continue.
-
----
+<!-- PREAMBLE_SECTION_END -->
 
 **参数解析**：从 `$ARGUMENTS` 中检测以下标志：
 - `--steps=skill1,skill2,...`：**必填**，要依次执行的 skill 列表（逗号分隔，如 `--steps=team-security,team-refactor`）

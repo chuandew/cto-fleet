@@ -3,6 +3,7 @@ name: drawio
 description: Generate draw.io diagrams as .drawio files, optionally export to PNG/SVG/PDF with embedded XML. Use when the user asks to create architecture diagrams, flowcharts, system diagrams, ER diagrams, sequence diagrams, or any visual diagram. Also use when converting ASCII art diagrams to proper visual formats, or when generating professional diagrams for documents.
 ---
 
+<!-- PREAMBLE_SECTION_START -->
 ## Preamble (run first)
 
 ```bash
@@ -11,9 +12,7 @@ _UPD=$(~/.claude/skills/cto-fleet/bin/cto-fleet-update-check 2>/dev/null || true
 ```
 
 If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-fleet/cto-fleet-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running cto-fleet v{to} (just updated!)" and continue.
-
-
----
+<!-- PREAMBLE_SECTION_END -->
 
 # Draw.io Diagram Skill
 

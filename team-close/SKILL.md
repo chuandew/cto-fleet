@@ -4,6 +4,7 @@ description: 关闭当前会话中所有活跃的 teammate 进程——向每个
 argument-hint: [--force (跳过 shutdown_request，直接 kill tmux panes)]
 ---
 
+<!-- PREAMBLE_SECTION_START -->
 ## Preamble (run first)
 
 ```bash
@@ -12,8 +13,7 @@ _UPD=$(~/.claude/skills/cto-fleet/bin/cto-fleet-update-check 2>/dev/null || true
 ```
 
 If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-fleet/cto-fleet-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running cto-fleet v{to} (just updated!)" and continue.
-
----
+<!-- PREAMBLE_SECTION_END -->
 
 **参数解析**：从 `$ARGUMENTS` 中检测以下标志：
 - `--force`：跳过 shutdown_request 协议，直接用 tmux kill-pane 强制关闭所有 agent pane

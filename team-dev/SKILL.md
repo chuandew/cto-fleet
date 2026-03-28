@@ -4,6 +4,7 @@ description: 启动一个完整的研发团队（architect×2/coder×2/reviewer/
 argument-hint: [--auto (全自动，不询问)] [--once (仅确认一次后自动执行)] [--lang=zh|en] 需求描述
 ---
 
+<!-- PREAMBLE_SECTION_START -->
 ## Preamble (run first)
 
 ```bash
@@ -12,8 +13,7 @@ _UPD=$(~/.claude/skills/cto-fleet/bin/cto-fleet-update-check 2>/dev/null || true
 ```
 
 If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-fleet/cto-fleet-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running cto-fleet v{to} (just updated!)" and continue.
-
----
+<!-- PREAMBLE_SECTION_END -->
 
 **参数解析**：从 `$ARGUMENTS` 中检测以下标志：
 - `--auto`：完全自主模式（不询问用户任何问题，全程自动决策）
