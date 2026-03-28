@@ -73,29 +73,6 @@ If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cto-flee
 > 仅当角色存在于当前 skill 时使用对应命名。未列出的角色用 `{role}-{context}.md` 格式。
 <!-- HANDOFF_SECTION_END -->
 
-
-## 文件交接规范
-
-本 skill 使用**文件交接模式**管理 agent 间通信，防止上下文溢出。
-
-**团队工作目录**：Team lead 在 TeamCreate 后立即执行 `mkdir -p /tmp/{team-name} && chmod 700 /tmp/{team-name}`，将路径传入每个 agent 的 prompt。
-
-**所有 agent 必须遵守**：
-1. **写入文件**：将完整报告写入 `/tmp/{team-name}/{role}-{context}.md`（≤2000 行，超大则拆分为 summary + details 文件）
-2. **发送引用**：SendMessage 仅发送文件路径 + ≤500 字符摘要（格式见下方模板）
-3. **按需读取**：接收方用 Read 工具读取文件，发送方不内联完整内容
-4. **路径转发**：Team lead 转发报告时只发路径+摘要，不 Read 后再 SendMessage
-
-**遵从性校验**：Team lead 收到 agent 消息时，如果消息超过 1000 字符且不包含 `/tmp/team-` 前缀的文件路径，要求该 agent 将内容写入文件后重新发送路径+摘要。
-
-**⚡必须 Read 的节点**：在以下决策节点，Team lead 必须 Read 文件而非仅依赖摘要：
-- 合并双路分析报告时
-- 判断是否达标/继续迭代时
-- 向用户展示关键报告时
-- 生成最终报告时
-
-**目录清理**：收尾阶段 TeamDelete 前执行 `rm -rf /tmp/{team-name}`。
-
 ## 流程概览
 
 ```
