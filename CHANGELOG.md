@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0] - 2026-04-07
+
+### Added
+- `team-quick` — Lightweight daily iteration team (planner + coder). 2 roles, 3 phases, focused on speed for small features, config changes, and medium bugfixes. Alternative to team-dev when full 6-role workflow is overkill.
+
+### Changed
+- `team` router — Added team-quick routing rules (intent signals: "小改动", "快速实现", "simple change", "quick fix", etc.), skill reference table entry, and combo patterns offering both lightweight (team-quick) and full (team-dev) options for "开发+审查", "设计+开发", "审计+修复", "开发+发布" combos.
+
 ## [1.8.0] - 2026-03-29
 
 ### Added
